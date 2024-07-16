@@ -1,0 +1,35 @@
+# Drive Mapping Script
+# Run the script by running the following command in powershell in the temp folder where the script is located
+# .\MapDrives.ps1 -Username <username>
+# <username> should be replaced with your network username 
+
+# Define the username as passed to the script when running
+param (
+	[string]$Username
+)
+
+# Define the network paths and their corresponding drive letters, using the $Username variable when needed
+$drives = @{
+    "Z:" = "\\server\share1"
+    "Y:" = "\\server\share2"
+    "X:" = "\\server\share3\$Username"
+}
+
+# Iterate through the drives
+foreach ($drive in $drives.GetEnumerator()) {
+    $driveLetter = $drive.Key
+    $networkPath = $drive.Value
+
+    # Check if the drive letter is already in use
+    if (Test-Path $driveLetter) {
+        Write-Host "Drive letter $driveLetter is already in use. Skipping..."
+    } else {
+        try {
+            # Attempt to map the drive
+            New-PSDrive -Name $driveLetter.TrimEnd(':') -PSProvider FileSystem -Root $networkPath -Persist -ErrorAction Stop
+            Write-Host "Mapped $driveLetter to $networkPath"
+        } catch {
+            Write-Host "Failed to map $driveLetter to $networkPath. Error: $_"
+        }
+    }
+}
