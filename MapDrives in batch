@@ -1,0 +1,48 @@
+@echo off
+setlocal enabledelayedexpansion
+
+REM Check if a username was provided
+if "%~1"=="" (
+    echo Usage: MapDrives.bat username
+    exit /b 1
+)
+
+set "username=%~1"
+
+REM Define the network paths and their corresponding drive letters
+set "drives[Z]=\\server\share1"
+set "drives[Y]=\\server\share2"
+set "drives[X]=\\server\share3\%username%"
+
+REM Iterate through the drives
+for %%D in (Z Y X) do (
+    set "driveLetter=%%D:"
+    set "networkPath=!drives[%%D]!"
+
+    REM Check if the drive letter is already in use
+    call :checkDrive %%D
+)
+
+goto :eof
+
+:checkDrive
+set "driveLetter=%1:"
+set "networkPath=!drives[%1]!"
+
+REM Check if the drive letter is already in use
+for /f "tokens=3 delims= " %%A in ('net use %1: 2^>nul ^| find "Remote name"') do (
+    if "%%A" neq "" (
+        echo Drive letter %1: is already in use. Skipping...
+        goto :eof
+    )
+)
+
+REM Attempt to map the drive
+net use !driveLetter! !networkPath! >nul 2>&1
+if !errorlevel! == 0 (
+    echo Mapped !driveLetter! to !networkPath!
+) else (
+    echo Failed to map !driveLetter! to !networkPath!. Error: !errorlevel!
+)
+
+goto :eof
